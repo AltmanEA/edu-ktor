@@ -9,6 +9,10 @@ import io.ktor.server.netty.*
 import ru.altmanea.edu.ktor.model.Config.Companion.serverDomain
 import ru.altmanea.edu.ktor.model.Config.Companion.serverPort
 import ru.altmanea.edu.ktor.server.face.index
+import ru.altmanea.edu.ktor.server.repos.lessonsRepo
+import ru.altmanea.edu.ktor.server.repos.lessonsRepoTestData
+import ru.altmanea.edu.ktor.server.repos.studentsRepo
+import ru.altmanea.edu.ktor.server.repos.studentsRepoTestData
 import ru.altmanea.edu.ktor.server.rest.lesson
 import ru.altmanea.edu.ktor.server.rest.student
 
@@ -23,7 +27,11 @@ fun main() {
     }.start(wait = true)
 }
 
-fun Application.main() {
+fun Application.main(test: Boolean = true) {
+    if(test){
+        studentsRepo.addAll(studentsRepoTestData)
+        lessonsRepo.addAll(lessonsRepoTestData)
+    }
     install(ContentNegotiation) {
         json()
     }
@@ -33,3 +41,4 @@ fun Application.main() {
         lesson()
     }
 }
+
