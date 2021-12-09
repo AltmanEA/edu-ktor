@@ -4,7 +4,7 @@ val logback_version: String by project
 
 plugins {
     application
-    kotlin("jvm") version "1.5.31"
+    kotlin("jvm") version "1.6.0"
     kotlin("plugin.serialization") version "1.5.31"
 }
 
@@ -12,7 +12,7 @@ group = "ru.altmanea.edu-ktor"
 version = "0.0.1"
 
 application {
-    mainClass.set("ru.altmanea.ApplicationKt")
+    mainClass.set("ru.altmanea.edu.ktor.server.ApplicationKt")
     applicationDefaultJvmArgs = listOf("-Dio.ktor.development=true")
 }
 

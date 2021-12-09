@@ -1,3 +1,4 @@
+import component.qcStudentList
 import kotlinx.browser.document
 import react.dom.render
 import react.query.QueryClient
@@ -12,7 +13,7 @@ fun main(){
         HashRouter {
             QueryClientProvider {
                 attrs.client = queryClient
-//                child(qcStudentList()) {}
+                child(qcStudentList()) {}
                 child(cReactQueryDevtools()) {}
             }
         }

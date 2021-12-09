@@ -10,7 +10,7 @@ import ru.altmanea.edu.ktor.model.Student
 import ru.altmanea.edu.ktor.server.repos.studentsRepo
 
 fun Route.student() =
-    route(Config.studentsURL) {
+    route(Config.studentsPath) {
         get {
             if (studentsRepo.isNotEmpty()) {
                 call.respond(studentsRepo)

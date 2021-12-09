@@ -2,6 +2,7 @@ package ru.altmanea.edu.ktor.server
 
 import io.ktor.application.*
 import io.ktor.features.*
+import io.ktor.http.*
 import io.ktor.routing.*
 import io.ktor.serialization.*
 import io.ktor.server.engine.*
@@ -28,9 +29,21 @@ fun main() {
 }
 
 fun Application.main(test: Boolean = true) {
-    if(test){
+    if(test) {
         studentsRepo.addAll(studentsRepoTestData)
         lessonsRepo.addAll(lessonsRepoTestData)
+        install(CORS) {
+            host("localhost:8080")
+            method(HttpMethod.Options)
+            method(HttpMethod.Put)
+            method(HttpMethod.Delete)
+            method(HttpMethod.Patch)
+            header(HttpHeaders.Authorization)
+            header(HttpHeaders.AccessControlAllowOrigin)
+            allowNonSimpleContentTypes = true
+            allowCredentials = true
+            allowSameOrigin = true
+        }
     }
     install(ContentNegotiation) {
         json()
