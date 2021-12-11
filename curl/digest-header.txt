@@ -1,0 +1,1 @@
+Authorization: Digest username="tutor", realm="Access to the '/digest' path", nonce="6b43d96af4bbc159", uri="/digest", algorithm=MD5, response="af14c59c0a16df1e5d1423dce5f9b785"
