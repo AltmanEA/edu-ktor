@@ -1,2 +1,0 @@
-curl -d "@tutor.json" -X POST  -H "Content-Type: application/json" http://localhost:8000/jwt-login
-curl -i -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJodHRwOi8vMC4wLjAuMDo4MDgwL2p3dCIsImlzcyI6Imh0dHA6Ly8wLjAuMC4wOjgwODAvIiwiZXhwIjoxNjM5MTE3NDE2LCJ1c2VybmFtZSI6InR1dG9yIn0.iX_05xqHwEmlP5A901tvQBiYdZ_jqkQQJho6evJjBSQ" http://localhost:8000/jwt

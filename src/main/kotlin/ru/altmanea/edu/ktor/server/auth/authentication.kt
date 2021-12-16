@@ -1,4 +1,4 @@
-package ru.altmanea.edu.ktor.server
+package ru.altmanea.edu.ktor.server.auth
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
@@ -9,32 +9,23 @@ import io.ktor.request.*
 import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.sessions.*
-import kotlinx.serialization.Serializable
 import java.security.MessageDigest
 import java.util.*
 
-@Serializable
-class User(
-    val username: String,
-    val password: String
-)
-
-data class UserSession(val name: String, val count: Int) : Principal
-
-val users = listOf("tutor", "admin").map { User(it, it) }
-
+//  For digest auth
 fun getMd5Digest(str: String): ByteArray = MessageDigest.getInstance("MD5").digest(str.toByteArray())
 const val digestRealm = "Access to the '/digest' path"
-val usersHash: Map<String, ByteArray> = users.associate {
+val usersHash: Map<String, ByteArray> = userList.associate {
     it.username to getMd5Digest("${it.username}:$digestRealm:${it.password}")
 }
 
+// For jwt auth
 val secret = "secret"
 val issuer = "http://0.0.0.0:8080/"
 val audience = "http://0.0.0.0:8080/jwt"
 val jwtRealm = "Access to 'jwt'"
 
-fun Application.auth() {
+fun Application.authentication() {
     install(Sessions) {
         cookie<UserSession>("user_session") {
             cookie.path = "/"
@@ -98,7 +89,13 @@ fun Application.auth() {
         authenticate("auth-form") {
             post("/form-login") {
                 val userName = call.principal<UserIdPrincipal>()?.name.toString()
-                call.sessions.set(UserSession(name = userName, count = 1))
+                val userRole =
+                    userList
+                        .find { it.username == userName }
+                        ?.let {
+                            userRoles[it]
+                        } ?: emptySet()
+                call.sessions.set(UserSession(userName, 1))
                 call.respondText("Hello, $userName!")
             }
         }
@@ -121,21 +118,20 @@ fun Application.auth() {
             }
         }
         authenticate("auth-session") {
-            get("/hello") {
+            get("/session") {
                 val userSession = call.principal<UserSession>()
                 call.sessions.set(userSession?.copy(count = userSession.count + 1))
-                call.respondText("Hello, ${userSession?.name}! Visit count is ${userSession?.count}.")
+                call.respondText("Hello, ${userSession?.name}")
             }
         }
 
     }
-
 }
 
 private fun validator(): suspend ApplicationCall.(UserPasswordCredential) -> Principal? =
     { credentials ->
         if (
-            users.find {
+            userList.find {
                 it.username == credentials.name
             }?.password == credentials.password
         ) {

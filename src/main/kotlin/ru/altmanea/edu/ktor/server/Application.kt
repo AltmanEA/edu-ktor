@@ -1,7 +1,6 @@
 package ru.altmanea.edu.ktor.server
 
 import io.ktor.application.*
-import io.ktor.auth.*
 import io.ktor.features.*
 import io.ktor.http.*
 import io.ktor.routing.*
@@ -10,6 +9,8 @@ import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import ru.altmanea.edu.ktor.model.Config.Companion.serverDomain
 import ru.altmanea.edu.ktor.model.Config.Companion.serverPort
+import ru.altmanea.edu.ktor.server.auth.authentication
+import ru.altmanea.edu.ktor.server.auth.authorization
 import ru.altmanea.edu.ktor.server.face.index
 import ru.altmanea.edu.ktor.server.repos.lessonsRepo
 import ru.altmanea.edu.ktor.server.repos.lessonsRepoTestData
@@ -49,7 +50,8 @@ fun Application.main(test: Boolean = true) {
     install(ContentNegotiation) {
         json()
     }
-    auth()
+    authentication()
+    authorization()
     routing {
         index()
         student()
