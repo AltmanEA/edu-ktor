@@ -9,6 +9,7 @@ import io.ktor.request.*
 import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.sessions.*
+import ru.altmanea.edu.ktor.model.User
 import java.security.MessageDigest
 import java.util.*
 
@@ -70,7 +71,7 @@ fun Application.authentication() {
                 session
             }
             challenge {
-                call.respondRedirect("/from-login")
+                call.respondRedirect("/form-login")
             }
         }
     }

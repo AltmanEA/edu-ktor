@@ -10,16 +10,12 @@ import react.query.useMutation
 import react.query.useQuery
 import react.query.useQueryClient
 import react.useRef
-import ru.altmanea.edu.ktor.model.Config.Companion.serverUrl
-import ru.altmanea.edu.ktor.model.Config.Companion.studentsPath
 import ru.altmanea.edu.ktor.model.Config.Companion.studentsURL
 import ru.altmanea.edu.ktor.model.Student
 import wrappers.AxiosResponse
 import wrappers.QueryError
 import wrappers.axios
 import kotlin.js.json
-
-//import wrappers.fetch
 
 interface StudentListProps : Props {
     var students: List<Student>

@@ -1,13 +1,7 @@
 package ru.altmanea.edu.ktor.server.auth
 
 import io.ktor.auth.*
-import kotlinx.serialization.Serializable
-
-@Serializable
-class User(
-    val username: String,
-    val password: String
-)
+import ru.altmanea.edu.ktor.model.User
 
 class Role(val name: String)
 
