@@ -1,5 +1,6 @@
 import component.fAuthManager
 import component.qcStudentList
+import component.qcStudentListAuth
 import kotlinx.browser.document
 import react.createContext
 import react.dom.render
@@ -18,7 +19,7 @@ fun main() {
             child(fAuthManager {
                 QueryClientProvider {
                     attrs.client = queryClient
-                    child(qcStudentList()) {}
+                    child(qcStudentListAuth()) {}
                     child(cReactQueryDevtools()) {}
                 }
             })

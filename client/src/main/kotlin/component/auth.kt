@@ -3,6 +3,8 @@ package component
 import kotlinext.js.jso
 import kotlinx.html.INPUT
 import kotlinx.html.js.onClickFunction
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.w3c.dom.url.URLSearchParams
 import react.*
 import react.dom.*
@@ -24,20 +26,22 @@ fun fAuth() = fc("Auth") { props: AuthProps ->
         val userInput = useRef<INPUT>()
         val passInput = useRef<INPUT>()
         div {
-            span {
-                p { +"Name:" }
+            p{
+                +"Name: "
                 input { ref = userInput }
             }
-            span {
-                p { +"Pass:" }
+            p {
+                +"Pass: "
                 input { ref = passInput }
             }
-            button {
-                +"Sign in"
-                attrs.onClickFunction = {
-                    userInput.current?.value?.let { user ->
-                        passInput.current?.value?.let { pass ->
-                            props.signIn(user, pass)
+            p {
+                button {
+                    +"Sign in"
+                    attrs.onClickFunction = {
+                        userInput.current?.value?.let { user ->
+                            passInput.current?.value?.let { pass ->
+                                props.signIn(user, pass)
+                            }
                         }
                     }
                 }
@@ -62,23 +66,25 @@ interface AuthContainerProps : Props {
     var signOff: () -> Unit
 }
 
+interface AxiosData {
+    val token: String
+}
+
 fun fAuthContainer() = fc("AuthContainer") { props: AuthContainerProps ->
     fun signInRequest(user: User) {
-        val authParams = URLSearchParams()
-        authParams.append("username", user.username)
-        authParams.append("password", user.password)
-        axios<String>(
+        axios<AxiosData>(
             jso {
-                url = "$serverUrl/form-login"
+                url = "$serverUrl/jwt-login"
                 method = "Post"
                 headers = json(
-                    "Content-Type" to "application/x-www-form-urlencoded"
+                    "Content-Type" to "application/json"
                 )
-                data = authParams
+                data = Json.encodeToString(user)
             }
         ).then {
-            val headers = it.headers
-            console.log(headers)
+            val token = it.data.token
+            console.log(token)
+            props.signIn(Pair(user, token))
         }
     }
     child(fAuth()) {
@@ -93,16 +99,16 @@ fun fAuthContainer() = fc("AuthContainer") { props: AuthContainerProps ->
 
 fun fAuthManager(render: Render) = fc<Props>("AuthManager") {
     val (user, setUser) = useState<User?>(null)
-    val (header, setHeader) = useState("")
+    val (token, setToken) = useState("")
     child(fAuthContainer()) {
         attrs.user = user
-        attrs.signOff = { setUser(user) }
+        attrs.signOff = { setUser(null) }
         attrs.signIn = {
             setUser(it.first)
-            setHeader(it.second)
+            setToken(it.second)
         }
     }
-    userInfo.Provider(Pair(user, header)) {
+    userInfo.Provider(Pair(user, token)) {
         render()
     }
 }

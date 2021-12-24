@@ -9,9 +9,12 @@ import react.fc
 import react.query.useMutation
 import react.query.useQuery
 import react.query.useQueryClient
+import react.useContext
 import react.useRef
 import ru.altmanea.edu.ktor.model.Config.Companion.studentsURL
 import ru.altmanea.edu.ktor.model.Student
+import ru.altmanea.edu.ktor.model.User
+import userInfo
 import wrappers.AxiosResponse
 import wrappers.QueryError
 import wrappers.axios
@@ -70,7 +73,21 @@ fun fcStudentList() = fc("StudentList") { props: StudentListProps ->
 
 typealias QueryData = Array<Student>
 
-fun qcStudentList() = fc("QueryStudentList") { _: Props ->
+interface StudentListContainerOwnProps : Props {
+    var token: String
+}
+
+fun qcStudentListAuth() = fc("AuthStudentList") { _: Props ->
+    val user = useContext(userInfo)
+    if(user.first == null)
+        p { +"Authentication is required"}
+    else
+        child(qcStudentList()){
+            attrs.token = user.second
+        }
+}
+
+fun qcStudentList() = fc("QueryStudentList") { props: StudentListContainerOwnProps ->
     val queryClient = useQueryClient()
 
     val query = useQuery<Any, QueryError, AxiosResponse<QueryData>, Any>(

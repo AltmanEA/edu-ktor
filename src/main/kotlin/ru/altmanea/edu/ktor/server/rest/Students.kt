@@ -15,7 +15,7 @@ import ru.altmanea.edu.ktor.server.repos.studentsRepo
 
 fun Route.student() =
     route(Config.studentsPath) {
-        authenticate ("auth-session") {
+        authenticate ("auth-jwt") {
             authorizedRoute(setOf(roleAdmin, roleUser)) {
                 get {
                     if (studentsRepo.isNotEmpty()) {
