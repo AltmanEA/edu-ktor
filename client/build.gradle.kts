@@ -40,3 +40,9 @@ kotlin {
         }
     }
 }
+
+tasks.register<Copy>("copyBuild") {
+    from("/build/distributions/client.js", "/build/distributions/client.js.map")
+    into("../src/main/resources/")
+}
+tasks.named("build") { finalizedBy("copyBuild") }

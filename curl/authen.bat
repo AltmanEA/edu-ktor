@@ -9,6 +9,7 @@ curl -i -X POST http://localhost:8000/form-login
 curl -i -H "Content-Type: application/x-www-form-urlencoded" -d "username=tutor&password=tutor"  -X POST http://localhost:8000/form-login
 @REM Session
 curl -v -b "user_session=count%3D%2523i1%26name%3D%2523stutor" http://localhost:8000/session
+curl -v -H "user_session: count=%23i1&name=%23stutor" http://localhost:8000/session
 @REM JWT
 curl -d "@tutor.json" -X POST  -H "Content-Type: application/json" http://localhost:8000/jwt-login
 curl -i -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJodHRwOi8vMC4wLjAuMDo4MDgwL2p3dCIsImlzcyI6Imh0dHA6Ly8wLjAuMC4wOjgwODAvIiwiZXhwIjoxNjM5NjQ5MjcxLCJ1c2VybmFtZSI6InR1dG9yIn0.jGlpEunPkJPbnggCqpsFi7qLJkOeVWpPMaUebb7eG0U" http://localhost:8000/jwt

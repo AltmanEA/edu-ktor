@@ -28,10 +28,7 @@ val jwtRealm = "Access to 'jwt'"
 
 fun Application.authentication() {
     install(Sessions) {
-        cookie<UserSession>("user_session") {
-            cookie.path = "/"
-            cookie.maxAgeInSeconds = 60
-        }
+        header<UserSession>("user_session") { }
     }
     install(Authentication) {
         basic("auth-basic") {
