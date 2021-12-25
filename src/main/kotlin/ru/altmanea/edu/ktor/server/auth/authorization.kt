@@ -2,13 +2,15 @@ package ru.altmanea.edu.ktor.server.auth
 
 import io.ktor.application.*
 import io.ktor.auth.*
+import io.ktor.auth.jwt.*
 import io.ktor.response.*
 import io.ktor.routing.*
 
 fun Application.authorization() {
     install(RoleBasedAuthorization) {
         getRoles {principal ->
-            val username = (principal as UserSession).name
+            val username = (principal as JWTPrincipal)
+                .payload.getClaim("username").asString()
             val user = userList.find { it.username== username }
             userRoles[user]?: emptySet()
         }

@@ -89,12 +89,16 @@ fun qcStudentListAuth() = fc("AuthStudentList") { _: Props ->
 
 fun qcStudentList() = fc("QueryStudentList") { props: StudentListContainerOwnProps ->
     val queryClient = useQueryClient()
+    val token = "Bearer ${props.token}"
 
     val query = useQuery<Any, QueryError, AxiosResponse<QueryData>, Any>(
         "studentList",
         {
             axios<QueryData>(jso {
                 url = studentsURL
+                headers = json(
+                    "Authorization" to token
+                )
             })
         }
     )
@@ -105,7 +109,8 @@ fun qcStudentList() = fc("QueryStudentList") { props: StudentListContainerOwnPro
                 url = studentsURL
                 method = "Post"
                 headers = json(
-                    "Content-Type" to "application/json"
+                    "Content-Type" to "application/json",
+                    "Authorization" to token
                 )
                 data = JSON.stringify(student)
             })
@@ -122,6 +127,9 @@ fun qcStudentList() = fc("QueryStudentList") { props: StudentListContainerOwnPro
             axios<String>(jso {
                 url = "$studentsURL/${student.idName}"
                 method = "Delete"
+                headers = json(
+                    "Authorization" to token
+                )
             })
         },
         options = jso {

@@ -5,7 +5,6 @@ import kotlinx.html.INPUT
 import kotlinx.html.js.onClickFunction
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.w3c.dom.url.URLSearchParams
 import react.*
 import react.dom.*
 import ru.altmanea.edu.ktor.model.Config.Companion.serverUrl
@@ -98,17 +97,14 @@ fun fAuthContainer() = fc("AuthContainer") { props: AuthContainerProps ->
 
 
 fun fAuthManager(render: Render) = fc<Props>("AuthManager") {
-    val (user, setUser) = useState<User?>(null)
-    val (token, setToken) = useState("")
+    val nullUserToken = Pair(null, "")
+    val (userToken, setUserToken) = useState<Pair<User?, String>>(nullUserToken)
     child(fAuthContainer()) {
-        attrs.user = user
-        attrs.signOff = { setUser(null) }
-        attrs.signIn = {
-            setUser(it.first)
-            setToken(it.second)
-        }
+        attrs.user = userToken.first
+        attrs.signOff = { setUserToken(nullUserToken) }
+        attrs.signIn = { setUserToken(it) }
     }
-    userInfo.Provider(Pair(user, token)) {
+    userInfo.Provider(userToken) {
         render()
     }
 }

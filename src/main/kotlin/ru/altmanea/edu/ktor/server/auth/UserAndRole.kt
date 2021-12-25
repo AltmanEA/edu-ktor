@@ -1,6 +1,7 @@
 package ru.altmanea.edu.ktor.server.auth
 
 import io.ktor.auth.*
+import io.ktor.auth.jwt.*
 import ru.altmanea.edu.ktor.model.User
 
 class Role(val name: String)
