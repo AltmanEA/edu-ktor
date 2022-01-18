@@ -24,23 +24,10 @@ interface StudentListProps : Props {
     var students: List<Student>
     var addStudent: (String, String) -> Unit
     var deleteStudent: (Int) -> Unit
+    var updateStudent: (Int, String, String) -> Unit
 }
 
 fun fcStudentList() = fc("StudentList") { props: StudentListProps ->
-    h3 { +"Students" }
-    ol {
-        props.students.mapIndexed { index, student ->
-            li {
-                +"${student.fullName} \t"
-                button {
-                    +"X"
-                    attrs.onClickFunction = {
-                        props.deleteStudent(index)
-                    }
-                }
-            }
-        }
-    }
 
     val firstnameRef = useRef<INPUT>()
     val surnameRef = useRef<INPUT>()
@@ -69,6 +56,31 @@ fun fcStudentList() = fc("StudentList") { props: StudentListProps ->
             }
         }
     }
+
+    h3 { +"Students" }
+    ol {
+        props.students.mapIndexed { index, student ->
+            li {
+                +"${student.fullName} \t"
+                button {
+                    +"X"
+                    attrs.onClickFunction = {
+                        props.deleteStudent(index)
+                    }
+                }
+                button {
+                    +"Update"
+                    attrs.onClickFunction = {
+                        firstnameRef.current?.value?.let { firstname ->
+                            surnameRef.current?.value?.let { surname ->
+                                props.updateStudent(index, firstname, surname)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 typealias QueryData = Array<Student>
@@ -79,10 +91,10 @@ interface StudentListContainerOwnProps : Props {
 
 fun qcStudentListAuth() = fc("AuthStudentList") { _: Props ->
     val user = useContext(userInfo)
-    if(user.first == null)
-        p { +"Authentication is required"}
+    if (user.first == null)
+        p { +"Authentication is required" }
     else
-        child(qcStudentList()){
+        child(qcStudentList()) {
             attrs.token = user.second
         }
 }
@@ -139,6 +151,25 @@ fun qcStudentList() = fc("QueryStudentList") { props: StudentListContainerOwnPro
         }
     )
 
+    val updateStudentMutation = useMutation<Any, Any, Pair<Student, Student>, Any>(
+        { oldAndNewStudent ->
+            axios<String>(jso {
+                url = "$studentsURL/${oldAndNewStudent.first.idName}"
+                method = "Put"
+                headers = json(
+                    "Content-Type" to "application/json",
+                    "Authorization" to token
+                )
+                data = JSON.stringify(oldAndNewStudent.second)
+            })
+        },
+        options = jso {
+            onSuccess = { _: Any, _: Any, _: Any? ->
+                queryClient.invalidateQueries<Any>("studentList")
+            }
+        }
+    )
+
 
     if (query.isLoading) div { +"Loading .." }
     else if (query.isError) div { +"Error!" }
@@ -152,6 +183,9 @@ fun qcStudentList() = fc("QueryStudentList") { props: StudentListContainerOwnPro
             }
             attrs.deleteStudent = {
                 deleteStudentMutation.mutate(students[it], null)
+            }
+            attrs.updateStudent = { i, f, s ->
+                updateStudentMutation.mutate(Pair(students[i], Student(f, s)), null)
             }
         }
     }

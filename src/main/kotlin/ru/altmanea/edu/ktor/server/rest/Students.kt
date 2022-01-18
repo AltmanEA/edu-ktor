@@ -15,11 +15,11 @@ import ru.altmanea.edu.ktor.server.repos.studentsRepo
 
 fun Route.student() =
     route(Config.studentsPath) {
-        authenticate ("auth-jwt") {
+        authenticate("auth-jwt") {
             authorizedRoute(setOf(roleAdmin, roleUser)) {
                 get {
-                    if (studentsRepo.isNotEmpty()) {
-                        call.respond(studentsRepo)
+                    if (!studentsRepo.isEmpty()) {
+                        call.respond(studentsRepo.findAll())
                     } else {
                         call.respondText("No students found", status = HttpStatusCode.NotFound)
                     }
@@ -29,12 +29,13 @@ fun Route.student() =
                         "Missing or malformed id",
                         status = HttpStatusCode.BadRequest
                     )
-                    val student =
+                    val studentFull =
                         studentsRepo.find { it.idName == id } ?: return@get call.respondText(
                             "No student with full name $id",
                             status = HttpStatusCode.NotFound
                         )
-                    call.respond(student)
+                    call.response.etag(studentFull.second.toString())
+                    call.respond(studentFull.first)
                 }
             }
             authorizedRoute(setOf(roleAdmin)) {
@@ -50,6 +51,19 @@ fun Route.student() =
                     } else {
                         call.respondText("Not Found", status = HttpStatusCode.NotFound)
                     }
+                }
+                put("{id}") {
+                    val id = call.parameters["id"] ?: return@put call.respondText(
+                        "Missing or malformed id",
+                        status = HttpStatusCode.BadRequest
+                    )
+                    val index = studentsRepo.findIndex { it.idName == id } ?: return@put call.respondText(
+                        "No student with full name $id",
+                        status = HttpStatusCode.NotFound
+                    )
+                    val newStudent = call.receive<Student>()
+                    studentsRepo[index] = newStudent
+                    call.respondText("Student updates correctly", status = HttpStatusCode.Created)
                 }
             }
         }

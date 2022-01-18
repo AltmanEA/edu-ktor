@@ -16,7 +16,6 @@ import ru.altmanea.edu.ktor.server.repos.lessonsRepo
 import ru.altmanea.edu.ktor.server.repos.lessonsRepoTestData
 import ru.altmanea.edu.ktor.server.repos.studentsRepo
 import ru.altmanea.edu.ktor.server.repos.studentsRepoTestData
-import ru.altmanea.edu.ktor.server.rest.lesson
 import ru.altmanea.edu.ktor.server.rest.student
 
 fun main() {
@@ -32,7 +31,7 @@ fun main() {
 
 fun Application.main(test: Boolean = true) {
     if(test) {
-        studentsRepo.addAll(studentsRepoTestData)
+        studentsRepoTestData.forEach{ studentsRepo.add(it)}
         lessonsRepo.addAll(lessonsRepoTestData)
         install(CORS) {
             host("localhost:8080")
@@ -55,7 +54,7 @@ fun Application.main(test: Boolean = true) {
     routing {
         index()
         student()
-        lesson()
+//        lesson()
     }
 }
 
