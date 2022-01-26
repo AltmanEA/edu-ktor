@@ -9,18 +9,16 @@ import react.fc
 import react.query.useMutation
 import react.query.useQuery
 import react.query.useQueryClient
-import react.useContext
+import react.router.dom.Link
 import react.useRef
 import ru.altmanea.edu.ktor.model.Config.Companion.studentsURL
 import ru.altmanea.edu.ktor.model.Student
-import ru.altmanea.edu.ktor.model.User
-import userInfo
 import wrappers.AxiosResponse
 import wrappers.QueryError
 import wrappers.axios
 import kotlin.js.json
 
-interface StudentListProps : Props {
+external interface StudentListProps : Props {
     var students: List<Student>
     var addStudent: (String, String) -> Unit
     var deleteStudent: (Int) -> Unit
@@ -61,21 +59,14 @@ fun fcStudentList() = fc("StudentList") { props: StudentListProps ->
     ol {
         props.students.mapIndexed { index, student ->
             li {
-                +"${student.fullName} \t"
+                Link{
+                    attrs.to = "/student/${student.idName}"
+                    +"${student.fullName} \t"
+                }
                 button {
                     +"X"
                     attrs.onClickFunction = {
                         props.deleteStudent(index)
-                    }
-                }
-                button {
-                    +"Update"
-                    attrs.onClickFunction = {
-                        firstnameRef.current?.value?.let { firstname ->
-                            surnameRef.current?.value?.let { surname ->
-                                props.updateStudent(index, firstname, surname)
-                            }
-                        }
                     }
                 }
             }
@@ -83,30 +74,14 @@ fun fcStudentList() = fc("StudentList") { props: StudentListProps ->
     }
 }
 
-typealias QueryData = Array<Student>
-
-interface StudentListContainerOwnProps : Props {
-    var token: String
-}
-
-fun qcStudentListAuth() = fc("AuthStudentList") { _: Props ->
-    val user = useContext(userInfo)
-    if (user.first == null)
-        p { +"Authentication is required" }
-    else
-        child(qcStudentList()) {
-            attrs.token = user.second
-        }
-}
-
-fun qcStudentList() = fc("QueryStudentList") { props: StudentListContainerOwnProps ->
+fun fcContainerStudentList() = fc("QueryStudentList") { props: AuthContainerOwnProps ->
     val queryClient = useQueryClient()
     val token = "Bearer ${props.token}"
 
-    val query = useQuery<Any, QueryError, AxiosResponse<QueryData>, Any>(
+    val query = useQuery<Any, QueryError, AxiosResponse<Array<Student>>, Any>(
         "studentList",
         {
-            axios<QueryData>(jso {
+            axios<Array<Student>>(jso {
                 url = studentsURL
                 headers = json(
                     "Authorization" to token
@@ -174,7 +149,7 @@ fun qcStudentList() = fc("QueryStudentList") { props: StudentListContainerOwnPro
     if (query.isLoading) div { +"Loading .." }
     else if (query.isError) div { +"Error!" }
     else {
-        val data = query.data?.data.unsafeCast<QueryData>()
+        val data = query.data?.data!!
         val students = data.map { Student(it.firstname, it.surname) }
         child(fcStudentList()) {
             attrs.students = students
@@ -190,3 +165,4 @@ fun qcStudentList() = fc("QueryStudentList") { props: StudentListContainerOwnPro
         }
     }
 }
+

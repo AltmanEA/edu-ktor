@@ -108,3 +108,17 @@ fun fAuthManager(render: Render) = fc<Props>("AuthManager") {
         render()
     }
 }
+
+external interface AuthContainerOwnProps : Props {
+    var token: String
+}
+
+fun qcStudentAuth(componentContainer: FC<AuthContainerOwnProps>) = fc("AuthStudent") { _: Props ->
+    val user = useContext(userInfo)
+    if (user.first == null)
+        p { +"Authentication is required" }
+    else
+        child(componentContainer) {
+            attrs.token = user.second
+        }
+}
