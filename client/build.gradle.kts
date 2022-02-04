@@ -26,7 +26,7 @@ dependencies {
     implementation(kotlinw("react-redux"))
     implementation(kotlinw("react-query"))
     implementation(kotlinw("styled"))
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.3.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.3.2")
     implementation(npm("axios", "0.24.0"))
 }
 
@@ -51,3 +51,5 @@ tasks.register<Copy>("copyBuildToBuild") {
 }
 tasks.named("build") { finalizedBy("copyBuild") }
 tasks.named("build") { finalizedBy("copyBuildToBuild") }
+tasks.named("browserDevelopmentWebpack") { finalizedBy("copyBuild") }
+tasks.named("browserDevelopmentWebpack") { finalizedBy("copyBuildToBuild") }

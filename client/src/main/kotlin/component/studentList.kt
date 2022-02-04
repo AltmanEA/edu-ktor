@@ -3,6 +3,7 @@ package component
 import kotlinext.js.jso
 import kotlinx.html.INPUT
 import kotlinx.html.js.onClickFunction
+import modelExt.fullname
 import react.Props
 import react.dom.*
 import react.fc
@@ -12,6 +13,7 @@ import react.query.useQueryClient
 import react.router.dom.Link
 import react.useRef
 import ru.altmanea.edu.ktor.model.Config.Companion.studentsURL
+import ru.altmanea.edu.ktor.model.Item
 import ru.altmanea.edu.ktor.model.Student
 import wrappers.AxiosResponse
 import wrappers.QueryError
@@ -19,10 +21,9 @@ import wrappers.axios
 import kotlin.js.json
 
 external interface StudentListProps : Props {
-    var students: List<Student>
+    var students: List<Item<Student>>
     var addStudent: (String, String) -> Unit
     var deleteStudent: (Int) -> Unit
-    var updateStudent: (Int, String, String) -> Unit
 }
 
 fun fcStudentList() = fc("StudentList") { props: StudentListProps ->
@@ -57,11 +58,11 @@ fun fcStudentList() = fc("StudentList") { props: StudentListProps ->
 
     h3 { +"Students" }
     ol {
-        props.students.mapIndexed { index, student ->
+        props.students.mapIndexed { index, studentItem ->
             li {
-                Link{
-                    attrs.to = "/student/${student.idName}"
-                    +"${student.fullName} \t"
+                Link {
+                    attrs.to = "/student/${studentItem.uuid}"
+                    +"${studentItem.elem.fullname} \t"
                 }
                 button {
                     +"X"
@@ -78,7 +79,7 @@ fun fcContainerStudentList() = fc("QueryStudentList") { props: AuthContainerOwnP
     val queryClient = useQueryClient()
     val token = "Bearer ${props.token}"
 
-    val query = useQuery<Any, QueryError, AxiosResponse<Array<Student>>, Any>(
+    val query = useQuery<Any, QueryError, AxiosResponse<Array<Item<Student>>>, Any>(
         "studentList",
         {
             axios<Array<Student>>(jso {
@@ -110,9 +111,9 @@ fun fcContainerStudentList() = fc("QueryStudentList") { props: AuthContainerOwnP
     )
 
     val deleteStudentMutation = useMutation<Any, Any, Any, Any>(
-        { student: Student ->
+        { studentItem: Item<Student> ->
             axios<String>(jso {
-                url = "$studentsURL/${student.idName}"
+                url = "$studentsURL/${studentItem.uuid}"
                 method = "Delete"
                 headers = json(
                     "Authorization" to token
@@ -126,41 +127,19 @@ fun fcContainerStudentList() = fc("QueryStudentList") { props: AuthContainerOwnP
         }
     )
 
-    val updateStudentMutation = useMutation<Any, Any, Pair<Student, Student>, Any>(
-        { oldAndNewStudent ->
-            axios<String>(jso {
-                url = "$studentsURL/${oldAndNewStudent.first.idName}"
-                method = "Put"
-                headers = json(
-                    "Content-Type" to "application/json",
-                    "Authorization" to token
-                )
-                data = JSON.stringify(oldAndNewStudent.second)
-            })
-        },
-        options = jso {
-            onSuccess = { _: Any, _: Any, _: Any? ->
-                queryClient.invalidateQueries<Any>("studentList")
-            }
-        }
-    )
 
 
     if (query.isLoading) div { +"Loading .." }
     else if (query.isError) div { +"Error!" }
     else {
-        val data = query.data?.data!!
-        val students = data.map { Student(it.firstname, it.surname) }
+        val items = query.data?.data?.toList() ?: emptyList()
         child(fcStudentList()) {
-            attrs.students = students
+            attrs.students = items
             attrs.addStudent = { f, s ->
                 addStudentMutation.mutate(Student(f, s), null)
             }
             attrs.deleteStudent = {
-                deleteStudentMutation.mutate(students[it], null)
-            }
-            attrs.updateStudent = { i, f, s ->
-                updateStudentMutation.mutate(Pair(students[i], Student(f, s)), null)
+                deleteStudentMutation.mutate(items[it], null)
             }
         }
     }

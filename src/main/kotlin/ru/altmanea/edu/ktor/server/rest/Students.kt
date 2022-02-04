@@ -11,6 +11,7 @@ import ru.altmanea.edu.ktor.model.Student
 import ru.altmanea.edu.ktor.server.auth.authorizedRoute
 import ru.altmanea.edu.ktor.server.auth.roleAdmin
 import ru.altmanea.edu.ktor.server.auth.roleUser
+import ru.altmanea.edu.ktor.server.repos.RepoItem
 import ru.altmanea.edu.ktor.server.repos.studentsRepo
 
 fun Route.student() =
@@ -29,25 +30,25 @@ fun Route.student() =
                         "Missing or malformed id",
                         status = HttpStatusCode.BadRequest
                     )
-                    val studentFull =
-                        studentsRepo.find { it.idName == id } ?: return@get call.respondText(
-                            "No student with full name $id",
+                    val studentItem =
+                        studentsRepo[id] ?: return@get call.respondText(
+                            "No student with id $id",
                             status = HttpStatusCode.NotFound
                         )
-                    call.response.etag(studentFull.second.toString())
-                    call.respond(studentFull.first)
+                    call.response.etag(studentItem.etag.toString())
+                    call.respond(studentItem)
                 }
             }
             authorizedRoute(setOf(roleAdmin)) {
                 post {
                     val student = call.receive<Student>()
-                    studentsRepo.add(student)
+                    studentsRepo.create(student)
                     call.respondText("Student stored correctly", status = HttpStatusCode.Created)
                 }
                 delete("{id}") {
                     val id = call.parameters["id"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
-                    if (studentsRepo.removeIf { it.idName == id }) {
-                        call.respondText("Lesson removed correctly", status = HttpStatusCode.Accepted)
+                    if (studentsRepo.delete(id)) {
+                        call.respondText("Student removed correctly", status = HttpStatusCode.Accepted)
                     } else {
                         call.respondText("Not Found", status = HttpStatusCode.NotFound)
                     }
@@ -57,13 +58,22 @@ fun Route.student() =
                         "Missing or malformed id",
                         status = HttpStatusCode.BadRequest
                     )
-                    val index = studentsRepo.findIndex { it.idName == id } ?: return@put call.respondText(
-                        "No student with full name $id",
+                    val oldStudentItem = studentsRepo[id] ?: return@put call.respondText(
+                        "No student with id $id",
                         status = HttpStatusCode.NotFound
                     )
                     val newStudent = call.receive<Student>()
-                    studentsRepo[index] = newStudent
-                    call.respondText("Student updates correctly", status = HttpStatusCode.Created)
+                    val clientEtag = call.request.headers["etag"]?.toLong()
+                    call.application.log.info("Update ${oldStudentItem.uuid} student. Server etag is ${oldStudentItem.etag}, client etag is $clientEtag")
+                    if (oldStudentItem.etag == clientEtag) {
+                        studentsRepo.update(id, newStudent)
+                        call.respondText("Student updates correctly", status = HttpStatusCode.Created)
+                    } else {
+                        call.respondText(
+                            "Element had updated on server",
+                            status = HttpStatusCode.BadRequest
+                        )
+                    }
                 }
             }
         }

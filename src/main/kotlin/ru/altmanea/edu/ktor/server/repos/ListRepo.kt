@@ -1,27 +1,43 @@
 package ru.altmanea.edu.ktor.server.repos
 
 import java.lang.System.currentTimeMillis
+import java.util.concurrent.ConcurrentHashMap
 
 class ListRepo<E> : Repo<E> {
-    private val list = ArrayList<Pair<E, Long>>()
+    private val list = ConcurrentHashMap<String, Pair<E, Long>>()
 
-    override fun get(index: Int): E = list[index].first
-    override fun set(index: Int, value: E) {
-        list[index] = Pair(value, currentTimeMillis())
-    }
-
-    override fun find(predicate: (E) -> Boolean): Pair<E, Long>? = list.find { predicate(it.first) }
-    override fun findIndex(predicate: (E) -> Boolean): Int? =
-        list.indexOf(find(predicate)).let {
-            if (it < 0) null else it
+    override fun get(uuid: String): RepoItem<E>? =
+        list[uuid]?.let {
+            RepoItem(it.first, uuid, it.second)
         }
 
-    override fun findAll(): List<E> = list.map { it.first }
+    override fun find(predicate: (E) -> Boolean): List<RepoItem<E>> =
+        list
+            .filter { (_, value) -> predicate(value.first) }
+            .map { RepoItem(it.value.first, it.key, it.value.second) }
 
-    override fun add(element: E): Boolean = list.add(Pair(element, currentTimeMillis()))
+    override fun findAll(): List<RepoItem<E>> =
+        list
+            .map { RepoItem(it.value.first, it.key, it.value.second) }
 
-    override fun removeIf(predicate: (E) -> Boolean): Boolean = list.removeIf { predicate(it.first) }
+    @Suppress("KotlinConstantConditions")
+    override fun create(element: E): Boolean =
+        RepoItem(element).let {
+            list[it.uuid] = it.elem to it.etag
+            true
+        }
 
-    override fun isEmpty(): Boolean = list.isEmpty()
+    override fun update(uuid: String, value: E): Boolean =
+        if (list.containsKey(uuid)) {
+            list[uuid] = value to currentTimeMillis()
+            true
+        } else false
+
+    override fun delete(uuid: String): Boolean =
+        list.remove(uuid) != null
+
+
+    override fun isEmpty(): Boolean =
+        list.isEmpty()
 
 }

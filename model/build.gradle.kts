@@ -1,16 +1,15 @@
 plugins {
-    kotlin("multiplatform") version "1.5.31"
-    kotlin("plugin.serialization") version "1.5.31"
+    kotlin("multiplatform") version "1.6.10"
+    kotlin("plugin.serialization") version "1.6.10"
 }
 
-val kotlinVersion = "1.5.31"
-val serializationVersion = "1.3.0"
+val kotlinVersion = "1.6.10"
+val serializationVersion = "1.3.2"
 
 group = "ru.altmanea.edu-ktor"
 version = "0.1"
 
 repositories {
-    maven("https://dl.bintray.com/kotlin/kotlin-eap")
     mavenCentral()
 }
 

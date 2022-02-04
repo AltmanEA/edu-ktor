@@ -13,15 +13,15 @@ import react.query.useQueryClient
 import react.router.useNavigate
 import react.router.useParams
 import ru.altmanea.edu.ktor.model.Config
+import ru.altmanea.edu.ktor.model.Item
 import ru.altmanea.edu.ktor.model.Student
 import wrappers.AxiosResponse
 import wrappers.QueryError
 import wrappers.axios
-import kotlin.js.Promise
 import kotlin.js.json
 
 external interface StudentProps : Props {
-    var students: Student
+    var students: Item<Student>
     var updateStudent: (String, String) -> Unit
 }
 
@@ -30,8 +30,8 @@ fun fcStudent() = fc("Student") { props: StudentProps ->
     val firstnameRef = useRef<INPUT>()
     val surnameRef = useRef<INPUT>()
 
-    val (firstname, setFirstname) = useState(props.students.firstname)
-    val (surname, setSurname) = useState(props.students.surname)
+    val (firstname, setFirstname) = useState(props.students.elem.firstname)
+    val (surname, setSurname) = useState(props.students.elem.surname)
 
     fun onInputEdit(setter: StateSetter<String>, ref: MutableRefObject<INPUT>) =
         { _: Event ->
@@ -68,14 +68,19 @@ fun fcStudent() = fc("Student") { props: StudentProps ->
     }
 }
 
+class PutArg(
+    val oldStudent: Item<Student>,
+    val newStudent: Student,
+)
+
 fun fcContainerStudent() = fc("ContainerStudent") { props: AuthContainerOwnProps ->
     val studentParams = useParams()
-    val navigate = useNavigate()
+    val queryClient = useQueryClient()
 
     val studentId = studentParams["id"] ?: "Route param error"
     val token = "Bearer ${props.token}"
 
-    val query = useQuery<Any, QueryError, AxiosResponse<Student>, Any>(
+    val query = useQuery<Any, QueryError, AxiosResponse<Item<Student>>, Any>(
         studentId,
         {
             axios<Array<Student>>(jso {
@@ -87,21 +92,22 @@ fun fcContainerStudent() = fc("ContainerStudent") { props: AuthContainerOwnProps
         }
     )
 
-    val updateStudentMutation = useMutation<Any, Any, Pair<Student, Student>, Any>(
-        { oldAndNewStudent ->
+    val updateStudentMutation = useMutation<Any, Any, PutArg, Any>(
+        { mutationData ->
             axios<String>(jso {
-                url = "${Config.studentsURL}/${oldAndNewStudent.first.idName}"
+                url = "${Config.studentsURL}/${mutationData.oldStudent.uuid}"
                 method = "Put"
                 headers = json(
                     "Content-Type" to "application/json",
-                    "Authorization" to token
+                    "Authorization" to token,
+                    "etag" to mutationData.oldStudent.etag
                 )
-                data = JSON.stringify(oldAndNewStudent.second)
+                data = JSON.stringify(mutationData.newStudent)
             })
         },
         options = jso {
             onSuccess = { _: Any, _: Any, _: Any? ->
-                Promise { _, _ -> navigate("/") }
+                queryClient.invalidateQueries<Any>(studentId)
             }
         }
     )
@@ -109,12 +115,11 @@ fun fcContainerStudent() = fc("ContainerStudent") { props: AuthContainerOwnProps
     if (query.isLoading) div { +"Loading .." }
     else if (query.isError) div { +"Error!" }
     else {
-        val data = query.data?.data!!
-        val oldStudent = Student(data.firstname, data.surname)
+        val studentItem = query.data?.data!!
         child(fcStudent()) {
-            attrs.students = oldStudent
+            attrs.students = studentItem
             attrs.updateStudent = { f, s ->
-                updateStudentMutation.mutate(Pair(oldStudent, Student(f, s)), null)
+                updateStudentMutation.mutate(PutArg(studentItem, Student(f, s)), null)
             }
         }
     }

@@ -13,7 +13,7 @@ import userInfo
 import wrappers.axios
 import kotlin.js.json
 
-interface AuthProps : Props {
+external interface AuthProps : Props {
     var user: User?
     var signIn: (String, String) -> Unit
     var signOff: () -> Unit
@@ -59,7 +59,7 @@ fun fAuth() = fc("Auth") { props: AuthProps ->
     }
 }
 
-interface AuthContainerProps : Props {
+external interface AuthContainerProps : Props {
     var user: User?
     var signIn: (Pair<User, String>) -> Unit
     var signOff: () -> Unit
