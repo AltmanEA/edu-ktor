@@ -6,16 +6,15 @@ import io.ktor.http.*
 import io.ktor.request.*
 import io.ktor.response.*
 import io.ktor.routing.*
-import ru.altmanea.edu.ktor.model.Config
+import ru.altmanea.edu.ktor.model.Config.Companion.studentsPath
 import ru.altmanea.edu.ktor.model.Student
 import ru.altmanea.edu.ktor.server.auth.authorizedRoute
 import ru.altmanea.edu.ktor.server.auth.roleAdmin
 import ru.altmanea.edu.ktor.server.auth.roleUser
-import ru.altmanea.edu.ktor.server.repos.RepoItem
 import ru.altmanea.edu.ktor.server.repos.studentsRepo
 
 fun Route.student() =
-    route(Config.studentsPath) {
+    route(studentsPath) {
         authenticate("auth-jwt") {
             authorizedRoute(setOf(roleAdmin, roleUser)) {
                 get {

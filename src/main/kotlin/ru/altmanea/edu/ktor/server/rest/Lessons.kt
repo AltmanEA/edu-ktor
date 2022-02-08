@@ -1,123 +1,145 @@
-//package ru.altmanea.edu.ktor.server.rest
-//
-//import io.ktor.application.*
-//import io.ktor.http.*
-//import io.ktor.request.*
-//import io.ktor.response.*
-//import io.ktor.routing.*
-//import ru.altmanea.edu.ktor.model.Config.Companion.lessonsURL
-//import ru.altmanea.edu.ktor.model.Lesson
-//import ru.altmanea.edu.ktor.server.repos.lessonsRepo
-//import ru.altmanea.edu.ktor.server.repos.studentsRepo
-//
-//fun Route.lesson() =
-//    route(lessonsURL) {
-//        get {
-//            if (lessonsRepo.isNotEmpty()) {
-//                call.respond(lessonsRepo)
-//            } else {
-//                call.respondText("No lessons found", status = HttpStatusCode.NotFound)
-//            }
-//        }
-//        get("{id}") {
-//            val id = call.parameters["id"] ?: return@get call.respondText(
-//                "Missing or malformed id",
-//                status = HttpStatusCode.BadRequest
-//            )
-//            val lesson =
-//                lessonsRepo.find { it.name == id } ?: return@get call.respondText(
-//                    "No lesson with name $id",
-//                    status = HttpStatusCode.NotFound
-//                )
-//            call.respond(lesson)
-//        }
-//        post {
-//            val lesson = call.receive<Lesson>()
-//            lessonsRepo.add(lesson)
-//            call.respondText("Lesson stored correctly", status = HttpStatusCode.Created)
-//        }
-//        delete("{id}") {
-//            val id = call.parameters["id"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
-//            if (lessonsRepo.removeIf { it.name == id }) {
-//                call.respondText("Lesson removed correctly", status = HttpStatusCode.Accepted)
-//            } else {
-//                call.respondText("Not Found", status = HttpStatusCode.NotFound)
-//            }
-//        }
-//
-//        post("{lessonId}/students/{studentId}") {
-//            val lessonId = call.parameters["lessonId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
-//            val studentId = call.parameters["studentId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
-//            val lesson = lessonsRepo.find { it.name == lessonId } ?: return@post call.respondText(
-//                "No lesson with name $lessonId",
-//                status = HttpStatusCode.NotFound
-//            )
-//            val student = studentsRepo.find { it.idName == studentId } ?: return@post call.respondText(
-//                "No student with full name $studentId",
-//                status = HttpStatusCode.NotFound
-//            )
-//            lesson.students += student
-//            call.respond(lesson)
-//        }
-//        delete("{lessonId}/students/{studentId}") {
-//            val lessonId = call.parameters["lessonId"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
-//            val studentId = call.parameters["studentId"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
-//            val lesson = lessonsRepo.find { it.name == lessonId } ?: return@delete call.respondText(
-//                "No lesson with name $lessonId",
-//                status = HttpStatusCode.NotFound
-//            )
-//            val student = studentsRepo.find { it.idName == studentId } ?: return@delete call.respondText(
-//                "No student with full name $studentId",
-//                status = HttpStatusCode.NotFound
-//            )
-//            lesson.students -= student
-//            call.respond(lesson)
-//        }
-//
-//        post("{lessonId}/students/{studentId}/marks") {
-//            val lessonId = call.parameters["lessonId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
-//            val studentId = call.parameters["studentId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
-//            val mark = call.receive<String>()
-//            val lesson = lessonsRepo.find { it.name == lessonId } ?: return@post call.respondText(
-//                "No lesson with name $lessonId",
-//                status = HttpStatusCode.NotFound
-//            )
-//            val student = studentsRepo.find { it.idName == studentId } ?: return@post call.respondText(
-//                "No student with full name $studentId",
-//                status = HttpStatusCode.NotFound
-//            )
-//            if(student !in lesson.students)
-//                call.respondText(
-//                    "No student $studentId in lesson $lessonId",
-//                    status = HttpStatusCode.NotFound
-//                )
-//            lesson.marks += studentId to mark
-//            call.respond(lesson)
-//        }
-//        delete("{lessonId}/students/{studentId}/marks") {
-//            val lessonId = call.parameters["lessonId"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
-//            val studentId = call.parameters["studentId"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
-//            val lesson = lessonsRepo.find { it.name == lessonId } ?: return@delete call.respondText(
-//                "No lesson with name $lessonId",
-//                status = HttpStatusCode.NotFound
-//            )
-//            val student = studentsRepo.find { it.idName == studentId } ?: return@delete call.respondText(
-//                "No student with full name $studentId",
-//                status = HttpStatusCode.NotFound
-//            )
-//            if(student !in lesson.students)
-//                call.respondText(
-//                    "No student $studentId in lesson $lessonId",
-//                    status = HttpStatusCode.NotFound
-//                )
-//            val mark = lesson.marks.find { it.first == studentId }
-//            if(mark==null){
-//                call.respondText(
-//                    "Student $studentId has not mark in lesson $lessonId",
-//                    status = HttpStatusCode.NotFound
-//                )
-//            }
-//            lesson.marks.remove(mark)
-//            call.respond(lesson)
-//        }
-//    }
+package ru.altmanea.edu.ktor.server.rest
+
+import io.ktor.application.*
+import io.ktor.auth.*
+import io.ktor.http.*
+import io.ktor.request.*
+import io.ktor.response.*
+import io.ktor.routing.*
+import io.ktor.util.pipeline.*
+import ru.altmanea.edu.ktor.model.Config.Companion.lessonsPath
+import ru.altmanea.edu.ktor.model.Lesson
+import ru.altmanea.edu.ktor.model.Link
+import ru.altmanea.edu.ktor.server.auth.authorizedRoute
+import ru.altmanea.edu.ktor.server.auth.roleAdmin
+import ru.altmanea.edu.ktor.server.auth.roleUser
+import ru.altmanea.edu.ktor.server.repos.RepoItem
+import ru.altmanea.edu.ktor.server.repos.lessonsRepo
+import ru.altmanea.edu.ktor.server.repos.studentsRepo
+import ru.altmanea.edu.ktor.server.repos.urlByUUID
+
+fun Route.lesson() =
+    route(lessonsPath) {
+        authenticate("auth-jwt") {
+            authorizedRoute(setOf(roleAdmin, roleUser)) {
+                get {
+                    if (!lessonsRepo.isEmpty()) {
+                        call.respond(lessonsRepo.findAll())
+                    } else {
+                        call.respondText("No lessons found", status = HttpStatusCode.NotFound)
+                    }
+                }
+                get("{id}") {
+                    val id = call.parameters["id"] ?: return@get call.respondText(
+                        "Missing or malformed id",
+                        status = HttpStatusCode.BadRequest
+                    )
+                    val lessonItem =
+                        lessonsRepo[id] ?: return@get call.respondText(
+                            "No lesson with name $id",
+                            status = HttpStatusCode.NotFound
+                        )
+                    call.response.etag(lessonItem.etag.toString())
+                    call.respond(lessonItem)
+                }
+            }
+            authorizedRoute(setOf(roleAdmin)) {
+                post {
+                    val lesson = call.receive<Lesson>()
+                    lessonsRepo.create(lesson)
+                    call.respondText("Lesson stored correctly", status = HttpStatusCode.Created)
+                }
+                delete("{id}") {
+                    val id = call.parameters["id"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
+                    if (lessonsRepo.delete(id)) {
+                        call.respondText("Lesson removed correctly", status = HttpStatusCode.Accepted)
+                    } else {
+                        call.respondText("Not Found", status = HttpStatusCode.NotFound)
+                    }
+                }
+
+                val lsPath = "{lessonId}/students/{studentId}"
+                post(lsPath) {
+                    when (val lsResult = lsParameters()) {
+                        is LSOk -> {
+                            lsResult.lessonItem.elem.students += lsResult.studentLink
+                            call.respond(lsResult.lessonItem)
+                        }
+                        is LSFail -> call.respondText(lsResult.text, status = lsResult.code)
+                    }
+                }
+                delete(lsPath) {
+                    when (val lsResult = lsParameters()) {
+                        is LSOk -> {
+                            lsResult.lessonItem.elem.students -= lsResult.studentLink
+                            call.respond(lsResult.lessonItem)
+                        }
+                        is LSFail -> call.respondText(lsResult.text, status = lsResult.code)
+                    }
+                }
+
+                post("$lsPath/marks") {
+                    when (val lsResult = lsParameters()) {
+                        is LSOk -> {
+                            if (lsResult.studentLink !in lsResult.lessonItem.elem.students)
+                                return@post call.respondText(
+                                    "No student ${lsResult.studentLink} in lesson ${lsResult.lessonItem.elem.name}",
+                                    status = HttpStatusCode.NotFound
+                                )
+                            val mark = call.receive<String>().toIntOrNull()
+                                ?: return@post call.respondText(
+                                    "Mark is wrong",
+                                    status = HttpStatusCode.BadRequest
+                                )
+                            lsResult.lessonItem.elem.marks.add(Pair(lsResult.studentLink, mark))
+                            call.respond(lsResult.lessonItem)
+                        }
+                        is LSFail -> call.respondText(lsResult.text, status = lsResult.code)
+                    }
+                }
+                delete("$lsPath/marks") {
+                    when (val lsResult = lsParameters()) {
+                        is LSOk -> {
+                            if (lsResult.studentLink !in lsResult.lessonItem.elem.students)
+                                return@delete call.respondText(
+                                    "No student ${lsResult.studentLink} in lesson ${lsResult.lessonItem.elem.name}",
+                                    status = HttpStatusCode.NotFound
+                                )
+                            val delItem = lsResult.lessonItem.elem.marks.find {
+                                it.first == lsResult.studentLink
+                            } ?: return@delete call.respondText(
+                                "No mark of student ${lsResult.studentLink} in lesson ${lsResult.lessonItem.elem.name}",
+                                status = HttpStatusCode.NotFound
+                            )
+                            lsResult.lessonItem.elem.marks.remove(delItem)
+                            call.respond(lsResult.lessonItem)
+                        }
+                        is LSFail -> call.respondText(lsResult.text, status = lsResult.code)
+                    }
+                }
+            }
+        }
+    }
+
+private sealed interface LSResult
+private class LSOk(
+    val lessonItem: RepoItem<Lesson>,
+    val studentLink: Link
+) : LSResult
+
+private class LSFail(
+    val text: String,
+    val code: HttpStatusCode
+) : LSResult
+
+private fun PipelineContext<Unit, ApplicationCall>.lsParameters(): LSResult {
+    val lessonId = call.parameters["lessonId"]
+        ?: return LSFail("LessonId wrong", HttpStatusCode.BadRequest)
+    val studentId = call.parameters["studentId"]
+        ?: return LSFail("StudentId wrong", HttpStatusCode.BadRequest)
+    val lessonItem = lessonsRepo[lessonId]
+        ?: return LSFail("No lesson with id $lessonId", HttpStatusCode.NotFound)
+    val studentLink = studentsRepo.urlByUUID(studentId)
+        ?: return LSFail("No student with id $studentId", HttpStatusCode.NotFound)
+    return LSOk(lessonItem, studentLink)
+}

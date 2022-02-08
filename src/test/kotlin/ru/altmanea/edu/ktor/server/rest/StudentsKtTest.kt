@@ -1,68 +1,108 @@
-//package ru.altmanea.edu.ktor.server.rest
-//
-//import io.ktor.application.*
-//import io.ktor.http.*
-//import io.ktor.server.testing.*
-//import kotlinx.serialization.decodeFromString
-//import kotlinx.serialization.encodeToString
-//import kotlinx.serialization.json.Json
-//import org.junit.Test
-//import ru.altmanea.edu.ktor.model.Config
-//import ru.altmanea.edu.ktor.model.Student
-//import ru.altmanea.edu.ktor.server.main
-//import kotlin.test.assertEquals
-//
-//internal class StudentsKtTest {
-//    @Test
-//    fun testStudentRoute() {
-//        withTestApplication(Application::main) {
-//            var students = handleRequest(HttpMethod.Get, Config.studentsURL).run {
-//                assertEquals(HttpStatusCode.OK, response.status())
-//                decodeBody<List<Student>>()
-//            }
-//            assertEquals(4, students.size)
-//            val sheldon = students.find { it.firstname == "Sheldon" }
-//            check(sheldon != null)
-//
-//            handleRequest(HttpMethod.Get, Config.studentsURL + sheldon.idName).run {
-//                assertEquals(HttpStatusCode.OK, response.status())
-//                assertEquals("Sheldon", decodeBody<Student>().firstname)
-//            }
-//            handleRequest(HttpMethod.Get, Config.studentsURL + "Jack").run {
-//                assertEquals(HttpStatusCode.NotFound, response.status())
-//            }
-//
-//            handleRequest(HttpMethod.Post, Config.studentsURL) {
-//                setBodyAndHeaders(
-//                    Json.encodeToString(
-//                        Student("Raj", "Koothrappali")
-//                    )
-//                )
-//            }.apply {
-//                assertEquals(HttpStatusCode.Created, response.status())
-//            }
-//            students = handleRequest(HttpMethod.Get, Config.studentsURL).decodeBody()
-//            assertEquals(5, students.size)
-//            val raj = students.find { it.firstname == "Raj" }
-//            check(raj != null)
-//            assertEquals("Koothrappali",raj.surname)
-//
-//            handleRequest(HttpMethod.Delete, Config.studentsURL + raj.idName).apply{
-//                assertEquals(HttpStatusCode.Accepted, response.status())
-//            }
-//            handleRequest(HttpMethod.Delete, Config.studentsURL + raj.idName).apply{
-//                assertEquals(HttpStatusCode.NotFound, response.status())
-//            }
-//
-//        }
-//    }
-//}
-//
-//private inline fun <reified T> TestApplicationCall.decodeBody() =
-//    Json.decodeFromString<T>(response.content ?: "")
-//
-//fun TestApplicationRequest.setBodyAndHeaders(body: String) {
-//    setBody(body)
-//    addHeader("Content-Type", "application/json")
-//    addHeader("Accept", "application/json")
-//}
+package ru.altmanea.edu.ktor.server.rest
+
+import io.ktor.application.*
+import io.ktor.http.*
+import io.ktor.server.testing.*
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import org.junit.Test
+import ru.altmanea.edu.ktor.model.Config
+import ru.altmanea.edu.ktor.model.Student
+import ru.altmanea.edu.ktor.server.main
+import ru.altmanea.edu.ktor.server.repos.RepoItem
+import kotlin.test.assertEquals
+
+internal class StudentsKtTest {
+    @Test
+    fun testStudentRoute() {
+        withTestApplication(Application::main) {
+            val token = handleRequest(HttpMethod.Post, "/jwt-login") {
+                setBodyAndHeaders("""{ "username": "admin", "password": "admin" }""")
+            }.run {
+                "Bearer ${decodeBody<Token>().token}"
+            }
+
+            val studentItems = handleRequest(HttpMethod.Get, Config.studentsPath) {
+                addHeader("Authorization", token)
+            }.run {
+                assertEquals(HttpStatusCode.OK, response.status())
+                decodeBody<List<RepoItem<Student>>>()
+            }
+            assertEquals(4, studentItems.size)
+            val sheldon = studentItems.find { it.elem.firstname == "Sheldon" }
+            check(sheldon != null)
+
+            handleRequest(HttpMethod.Get, Config.studentsPath + sheldon.uuid) {
+                addHeader("Authorization", token)
+            }.run {
+                assertEquals(HttpStatusCode.OK, response.status())
+                assertEquals("Sheldon", decodeBody<RepoItem<Student>>().elem.firstname)
+            }
+            handleRequest(HttpMethod.Get, Config.studentsPath + "Jack") {
+                addHeader("Authorization", token)
+            }.run {
+                assertEquals(HttpStatusCode.NotFound, response.status())
+            }
+
+            handleRequest(HttpMethod.Post, Config.studentsPath) {
+                setBodyAndHeaders(
+                    Json.encodeToString(
+                        Student("Raj", "Koothrappali")
+                    )
+                )
+                addHeader("Authorization", token)
+            }.apply {
+                assertEquals(HttpStatusCode.Created, response.status())
+            }
+            val studentItemsWithRaj = handleRequest(HttpMethod.Get, Config.studentsPath) {
+                addHeader("Authorization", token)
+            }.run {
+                decodeBody<List<RepoItem<Student>>>()
+            }
+            assertEquals(5, studentItemsWithRaj.size)
+            val raj = studentItemsWithRaj.find { it.elem.firstname == "Raj" }
+            check(raj != null)
+            assertEquals("Koothrappali", raj.elem.surname)
+
+            handleRequest(HttpMethod.Delete, Config.studentsPath + raj.uuid) {
+                addHeader("Authorization", token)
+            }.apply {
+                assertEquals(HttpStatusCode.Accepted, response.status())
+            }
+            handleRequest(HttpMethod.Delete, Config.studentsPath + raj.uuid) {
+                addHeader("Authorization", token)
+            }.apply {
+                assertEquals(HttpStatusCode.NotFound, response.status())
+            }
+
+            val penny = studentItems.find { it.elem.firstname == "Penny" }
+            check(penny != null)
+            handleRequest(HttpMethod.Put, Config.studentsPath + penny.uuid) {
+                setBodyAndHeaders(
+                    Json.encodeToString(
+                        Student("Penny", "Waitress")
+                    )
+                )
+                addHeader("Authorization", token)
+                addHeader("etag", penny.etag.toString())
+            }.apply {
+                assertEquals(HttpStatusCode.Created, response.status())
+            }
+            handleRequest(HttpMethod.Put, Config.studentsPath + penny.uuid) {
+                setBodyAndHeaders(
+                    Json.encodeToString(
+                        Student("Penny", "Unknown")
+                    )
+                )
+                addHeader("Authorization", token)
+                addHeader("etag", penny.etag.toString())
+            }.apply {
+                assertEquals(HttpStatusCode.BadRequest, response.status())
+                assertEquals("Element had updated on server", response.content)
+            }
+        }
+    }
+}
+

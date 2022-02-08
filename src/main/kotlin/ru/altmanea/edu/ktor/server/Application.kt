@@ -12,8 +12,11 @@ import ru.altmanea.edu.ktor.model.Config.Companion.serverPort
 import ru.altmanea.edu.ktor.server.auth.authentication
 import ru.altmanea.edu.ktor.server.auth.authorization
 import ru.altmanea.edu.ktor.server.face.index
+import ru.altmanea.edu.ktor.server.repos.lessonsRepo
+import ru.altmanea.edu.ktor.server.repos.lessonsRepoTestData
 import ru.altmanea.edu.ktor.server.repos.studentsRepo
 import ru.altmanea.edu.ktor.server.repos.studentsRepoTestData
+import ru.altmanea.edu.ktor.server.rest.lesson
 import ru.altmanea.edu.ktor.server.rest.student
 
 fun main() {
@@ -30,19 +33,19 @@ fun main() {
 fun Application.main(test: Boolean = true) {
     if(test) {
         studentsRepoTestData.forEach{ studentsRepo.create(it)}
-//        lessonsRepo.addAll(lessonsRepoTestData)
-        install(CORS) {
-            host("localhost:8080")
-            method(HttpMethod.Options)
-            method(HttpMethod.Put)
-            method(HttpMethod.Delete)
-            method(HttpMethod.Patch)
-            header(HttpHeaders.Authorization)
-            header(HttpHeaders.AccessControlAllowOrigin)
-            allowNonSimpleContentTypes = true
-            allowCredentials = true
-            allowSameOrigin = true
-        }
+        lessonsRepoTestData.forEach { lessonsRepo.create(it) }
+//        install(CORS) {
+//            host("localhost:8080")
+//            method(HttpMethod.Options)
+//            method(HttpMethod.Put)
+//            method(HttpMethod.Delete)
+//            method(HttpMethod.Patch)
+//            header(HttpHeaders.Authorization)
+//            header(HttpHeaders.AccessControlAllowOrigin)
+//            allowNonSimpleContentTypes = true
+//            allowCredentials = true
+//            allowSameOrigin = true
+//        }
     }
     install(ContentNegotiation) {
         json()
@@ -52,7 +55,7 @@ fun Application.main(test: Boolean = true) {
     routing {
         index()
         student()
-//        lesson()
+        lesson()
     }
 }
 

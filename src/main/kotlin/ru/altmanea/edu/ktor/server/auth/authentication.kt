@@ -97,7 +97,7 @@ fun Application.authentication() {
                 call.respondText("Hello, $userName!")
             }
         }
-        post("/jwt-login") {
+        post("jwt-login") {
             val user = call.receive<User>()
             val token = JWT.create()
                 .withAudience(audience)
