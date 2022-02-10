@@ -9,7 +9,6 @@ import io.ktor.routing.*
 import io.ktor.util.pipeline.*
 import ru.altmanea.edu.ktor.model.Config.Companion.lessonsPath
 import ru.altmanea.edu.ktor.model.Lesson
-import ru.altmanea.edu.ktor.model.Link
 import ru.altmanea.edu.ktor.server.auth.authorizedRoute
 import ru.altmanea.edu.ktor.server.auth.roleAdmin
 import ru.altmanea.edu.ktor.server.auth.roleUser
@@ -63,7 +62,7 @@ fun Route.lesson() =
                     when (val lsResult = lsParameters()) {
                         is LSOk -> {
                             lsResult.lessonItem.elem.students += lsResult.studentLink
-                            call.respond(lsResult.lessonItem)
+                            call.respond(lessonsRepo[lsResult.lessonItem.uuid]!!)
                         }
                         is LSFail -> call.respondText(lsResult.text, status = lsResult.code)
                     }
@@ -72,7 +71,8 @@ fun Route.lesson() =
                     when (val lsResult = lsParameters()) {
                         is LSOk -> {
                             lsResult.lessonItem.elem.students -= lsResult.studentLink
-                            call.respond(lsResult.lessonItem)
+                            lsResult.lessonItem.elem.marks -= lsResult.studentLink
+                            call.respond(lessonsRepo[lsResult.lessonItem.uuid]!!)
                         }
                         is LSFail -> call.respondText(lsResult.text, status = lsResult.code)
                     }
@@ -91,8 +91,8 @@ fun Route.lesson() =
                                     "Mark is wrong",
                                     status = HttpStatusCode.BadRequest
                                 )
-                            lsResult.lessonItem.elem.marks.add(Pair(lsResult.studentLink, mark))
-                            call.respond(lsResult.lessonItem)
+                            lsResult.lessonItem.elem.marks += lsResult.studentLink to mark
+                            call.respond(lessonsRepo[lsResult.lessonItem.uuid]!!)
                         }
                         is LSFail -> call.respondText(lsResult.text, status = lsResult.code)
                     }
@@ -105,14 +105,12 @@ fun Route.lesson() =
                                     "No student ${lsResult.studentLink} in lesson ${lsResult.lessonItem.elem.name}",
                                     status = HttpStatusCode.NotFound
                                 )
-                            val delItem = lsResult.lessonItem.elem.marks.find {
-                                it.first == lsResult.studentLink
-                            } ?: return@delete call.respondText(
-                                "No mark of student ${lsResult.studentLink} in lesson ${lsResult.lessonItem.elem.name}",
-                                status = HttpStatusCode.NotFound
-                            )
-                            lsResult.lessonItem.elem.marks.remove(delItem)
-                            call.respond(lsResult.lessonItem)
+                            lsResult.lessonItem.elem.marks.remove(lsResult.studentLink)
+                                ?: return@delete call.respondText(
+                                    "No mark of student ${lsResult.studentLink} in lesson ${lsResult.lessonItem.elem.name}",
+                                    status = HttpStatusCode.NotFound
+                                )
+                            call.respond(lessonsRepo[lsResult.lessonItem.uuid]!!)
                         }
                         is LSFail -> call.respondText(lsResult.text, status = lsResult.code)
                     }
@@ -124,7 +122,7 @@ fun Route.lesson() =
 private sealed interface LSResult
 private class LSOk(
     val lessonItem: RepoItem<Lesson>,
-    val studentLink: Link
+    val studentLink: String
 ) : LSResult
 
 private class LSFail(

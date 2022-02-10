@@ -79,9 +79,37 @@ internal class LessonsKtTest {
                 assertEquals(HttpStatusCode.Accepted, response.status())
             }
 
-            // to do PUT
+            val lsPath = Config.lessonsPath + math.uuid + "/students/" + sheldon.uuid
 
+            val mathWithSheldon = handleRequest(HttpMethod.Post, lsPath) {
+                addHeader("Authorization", token)
+            }.run {
+                assertEquals(HttpStatusCode.OK, response.status())
+                decodeBody<RepoItem<Lesson>>()
+            }
+            assertEquals(1, mathWithSheldon.elem.students.size)
+            assertEquals(0, mathWithSheldon.elem.marks.size)
 
+            val mathWithSheldonMark = handleRequest(HttpMethod.Post, "$lsPath/marks") {
+                setBodyAndHeaders(
+                    Json.encodeToString(5)
+                )
+                addHeader("Authorization", token)
+            }.run {
+                assertEquals(HttpStatusCode.OK, response.status())
+                decodeBody<RepoItem<Lesson>>()
+            }
+            assertEquals(1, mathWithSheldonMark.elem.students.size)
+            assertEquals(1, mathWithSheldonMark.elem.marks.size)
+
+            val mathWithoutSheldon = handleRequest(HttpMethod.Delete, lsPath) {
+                addHeader("Authorization", token)
+            }.run {
+                assertEquals(HttpStatusCode.OK, response.status())
+                decodeBody<RepoItem<Lesson>>()
+            }
+            assertEquals(0, mathWithoutSheldon.elem.students.size)
+            assertEquals(0, mathWithoutSheldon.elem.marks.size)
         }
     }
 }
